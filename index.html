@@ -695,5 +695,153 @@ function sendForm(){
   btn.textContent='✓ Sendt!';btn.disabled=true;
 }
 </script>
+<script>
+// Nav scroll
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').classList.toggle('on',scrollY>60);
+});
+
+// Mobile menu
+function openM(){document.getElementById('mob').classList.add('open');}
+function closeM(){document.getElementById('mob').classList.remove('open');}
+
+// Reveal animation
+const obs=new IntersectionObserver(e=>{
+  e.forEach(en=>{
+    if(en.isIntersecting) en.target.classList.add('in');
+  });
+},{threshold:.1});
+document.querySelectorAll('.rv').forEach(el=>obs.observe(el));
+
+// Scroll to calc + autofill
+function gotoCalc(dest){
+  document.getElementById('c-dest').value = dest;
+  document.getElementById('kalkulator').scrollIntoView({behavior:'smooth'});
+  setTimeout(()=>calc(true), 500);
+}
+
+// Pricing
+const prices = {
+  budapest: {
+    city: 'Budapest 🇭🇺',
+    base: { starter: 2490, experience: 3290, vip: 4990 },
+    breakdown: {
+      starter:    [['Fly tur/retur (OSL)', 1400], ['Hotell 2 netter (3★)', 800], ['Reiseplan + support', 290]],
+      experience: [['Fly tur/retur (OSL)', 1400], ['Hotell 2 netter (4★)', 1100], ['Termalbad + ruin bar-tur', 500], ['Velkomstdrink + plan', 290]],
+      vip:        [['Fly tur/retur (OSL)', 1400], ['Boutiquehotell (5★)', 2200], ['Privat tur + aktiviteter', 900], ['Personlig planlegger', 490]]
+    }
+  },
+  praha: {
+    city: 'Praha 🇨🇿',
+    base: { starter: 2190, experience: 2890, vip: 4490 },
+    breakdown: {
+      starter:    [['Fly tur/retur (OSL)', 1100], ['Hotell 2 netter (3★)', 800], ['Reiseplan + support', 290]],
+      experience: [['Fly tur/retur (OSL)', 1100], ['Hotell 2 netter (4★)', 1000], ['Guidet øltur + byvandring', 500], ['Velkomstdrink + plan', 290]],
+      vip:        [['Fly tur/retur (OSL)', 1100], ['Boutiquehotell (5★)', 1900], ['Privat bryggeritur + middag', 900], ['Personlig planlegger', 590]]
+    }
+  },
+  madrid: {
+    city: 'Madrid 🇪🇸',
+    base: { starter: 2790, experience: 3690, vip: 5990 },
+    breakdown: {
+      starter:    [['Fly tur/retur (OSL)', 1700], ['Hotell 2 netter (3★)', 800], ['Reiseplan + support', 290]],
+      experience: [['Fly tur/retur (OSL)', 1700], ['Hotell 2 netter (4★)', 1200], ['Tapastur + nattlivs-guide', 500], ['Velkomstdrink + plan', 290]],
+      vip:        [['Fly tur/retur (OSL)', 1700], ['Luksushotell (5★)', 2600], ['Privat tapastur + fotball', 900], ['Personlig planlegger', 790]]
+    }
+  }
+};
+
+const pkgNames = { starter: 'Starter', experience: 'Experience', vip: 'VIP' };
+function fmt(n){ return n.toLocaleString('nb-NO') + ' kr'; }
+
+// Calculator
+function calc(scrollInto=false){
+  const dest = document.getElementById('c-dest').value;
+  const pkg  = document.getElementById('c-pkg').value;
+  const people = Math.max(2, parseInt(document.getElementById('c-people').value) || 2);
+
+  const addTransfer = document.getElementById('add-transfer').checked;
+  const addActivity = document.getElementById('add-activity').checked;
+  const addDinner   = document.getElementById('add-dinner').checked;
+
+  const el = document.getElementById('calc-result');
+
+  if (!dest){
+    el.innerHTML = `<div class="cr-empty"><div class="cr-empty-icon">🗺️</div><p>Velg destinasjon<br>og se prisen</p></div>`;
+    return;
+  }
+
+  const d = prices[dest];
+  let perPerson = d.base[pkg];
+  let extras = [];
+
+  if (addTransfer){ perPerson += 350; extras.push(['Flyplass-transfer',350]); }
+  if (addActivity){ perPerson += 450; extras.push(['Ekstra aktivitet',450]); }
+  if (addDinner){ perPerson += 600; extras.push(['Gruppemiddag',600]); }
+
+  const total = perPerson * people;
+
+  let rows = d.breakdown[pkg].map(([l,v])=>`
+    <div class="cr-row">
+      <span class="cr-item">${l}</span>
+      <span class="cr-val">${fmt(v)}</span>
+    </div>`).join('');
+
+  extras.forEach(([l,v])=>{
+    rows += `<div class="cr-row"><span class="cr-item">${l}</span><span class="cr-val">+ ${fmt(v)}</span></div>`;
+  });
+
+  el.innerHTML = `
+  <div>
+    <div class="cr-dest-name">${d.city} – ${pkgNames[pkg]}</div>
+    <div class="cr-sub">${people} personer · Fredag–søndag</div>
+
+    <div class="cr-breakdown">${rows}</div>
+
+    <div class="cr-divider"></div>
+
+    <div class="cr-totals">
+      <div class="cr-total-box">
+        <div class="cr-total-label">Per person</div>
+        <div class="cr-total-num">${fmt(perPerson)}</div>
+      </div>
+      <div class="cr-total-box">
+        <div class="cr-total-label">Totalt</div>
+        <div class="cr-total-num">${fmt(total)}</div>
+      </div>
+    </div>
+
+    <a href="#kontakt" class="btn-r" style="display:block;text-align:center">Send forespørsel →</a>
+  </div>`;
+
+  // smooth scroll til resultat første gang
+  if(scrollInto){
+    document.getElementById('calc-result').scrollIntoView({behavior:'smooth'});
+  }
+}
+
+// Type buttons
+function setType(btn){
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('f-type').value = btn.textContent;
+}
+
+// Fake submit (kan kobles til backend senere)
+function sendForm(){
+  const n=document.getElementById('f-name').value;
+  const e=document.getElementById('f-email').value;
+
+  if(!n||!e){
+    alert('Fyll ut navn og e-post.');
+    return;
+  }
+
+  document.getElementById('cf-ok').style.display='block';
+
+  const btn=document.querySelector('.cf-submit');
+  btn.textContent='✓ Sendt!';
+  btn.disabled=true;
+}
 </body>
 </html>
